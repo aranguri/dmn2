@@ -5,9 +5,9 @@ from utils import *
 
 EMBEDDINGS_PATH = '../nns/datasets/glove/glove.6B.50d.txt'
 
-class Babi_task:
-    def __init__(self, num_task, batch_size):
-        self.num_task = num_task
+class BabiTask:
+    def __init__(self, task_num, batch_size):
+        self.task_num = task_num
         self.batch_size = batch_size
         self.epoch = 0
         self.batch_ix = -1
@@ -25,7 +25,7 @@ class Babi_task:
     def load_data(self):
         input_ = []
 
-        with open(f'bAbI-tasks/task_{self.num_task}.txt') as file:
+        with open(f'bAbI-tasks/task_{self.task_num}.txt') as file:
             task = file.read()
             sentences = task.split('\n')
             sentences = np.array([np.array(s.split(' ')) for s in sentences])
@@ -65,5 +65,5 @@ class Babi_task:
             self.embed_weights[word] = np.random.randn(dims)
         return self.embed_weights[word]
 
-    def eos_token(self):
+    def eos_vector(self):
         return self.embeds('.')
