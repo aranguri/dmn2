@@ -1,69 +1,106 @@
-from pprint import pprint
 import numpy as np
 import pandas as pd
+import os.path
 from utils import *
 
-EMBEDDINGS_PATH = '../nns/datasets/glove/glove.6B.50d.txt'
-
-class BabiTask:
-    def __init__(self, task_num, batch_size):
+class BabiGen:
+    def __init__(self, task_num, batch_size, embeddings_size):
         self.task_num = task_num
         self.batch_size = batch_size
-        self.epoch = 0
-        self.batch_ix = -1
+        self.embeddings_size = embeddings_size
         self.data = []
+        self.embed_weights = {}
 
-        self.load_embedding()
         self.load_data()
         self.preprocess_data()
-
-    def load_embedding(self):
-        #TODO: read from pickle instead of txt
-        df = pd.read_csv(EMBEDDINGS_PATH, sep=' ', quoting=3, header=None, index_col=0)
-        self.embed_weights = {key: val.values for key, val in df.T.items()}
+        # self.store_data()
 
     def load_data(self):
-        input_ = []
+        input = []
 
-        with open(f'bAbI-tasks/task_{self.task_num}.txt') as file:
+        with open(f'babi/task_{self.task_num}_back.txt') as file:
             task = file.read()
+            task = task.replace('.', ' .')
+            task = task.replace('?', ' ?')
             sentences = task.split('\n')
             sentences = np.array([np.array(s.split(' ')) for s in sentences])
-            for s in sentences:
+
+            # Prevent reading last line, because atom added one new line.
+            for s in sentences[:-1]:
+                if s[0] == '1':
+                    input = []
+
                 # We want to see if any entry in s has the character
                 #  '\t' which only answers have.
                 if any(np.core.defchararray.find(s, '\t') != -1):
                     s = np.concatenate((s[:-1], s[-1].split('\t')))
                     s = [self.embed(w) for w in s]
-                    # TODO: modify to support multiple label indices
-                    # TODO: use np array
+                    # TODo: modify to support multiple label indices
                     question, answer, label = s[0:-2], s[-2], s[-1]
-                    input_ = np.array(input_)
-                    self.data.append((input_, question, answer, label))
-                    input_ = []
+                    input_flatten = np.array(input).reshape(-1, self.embeddings_size)
+                    self.data.append((input_flatten, question, answer, label))
                 else:
-                    s = [self.embed(w) for w in s]
-                    input_.append(s)
+                    # TODo: modify to store sentence number
+                    s = [self.embed(w) for w in s[1:]]
+                    input.append(s)
 
     def preprocess_data(self):
         data = np.array(self.data)
-        num_batches = (len(data) // self.batch_size)
+        num_batches = len(data) // self.batch_size
         data = data[:num_batches * self.batch_size]
-        self.data = data.reshape(num_batches, self.batch_size, -1)
+        data = data.reshape(num_batches, self.batch_size, -1)
+        data = np.swapaxes(data, 1, 2)
+
+        # Sorry world for the fors.
+        for i in range(len(data)):
+            max_length = max([data[i, 0, j].shape[0] for j in range(len(data[i, 0]))])
+            for j in range(len(data[i, 0])):
+                d = data[i, 0, j]
+                if max_length != d.shape[0]:
+                    ps(np.pad(d, ((0, max_length - d.shape[0]), (0, 0)), 'constant'))
+                    data[i, 0, j] = np.pad(d, ((0, max_length - d.shape[0]), (0, 0)), 'constant')
+        return data
         self.num_batches = num_batches
 
-    def next_batch(self):
-        #TODO: better way to do this?
-        self.batch_ix += 1
-        if self.batch_ix > self.num_batches:
-            self.batch_ix = -1
-        return self.data[self.batch_ix]
+    def store_data(self):
+        file_name = f'babi/parsed/{self.task_num}_{self.batch_size}'
+        np.savez(file_name, self.data, self.embed('.'))
 
     def embed(self, word):
         if word not in self.embed_weights.keys():
-            dims = len(self.embed_weights)
-            self.embed_weights[word] = np.random.randn(dims)
+            self.embed_weights[word] = np.random.randn(self.embeddings_size)
         return self.embed_weights[word]
 
-    def eos_vector(self):
-        return self.embeds('.')
+    def get_data(self):
+        return self.data
+
+class BabiTask:
+    def __init__(self, batch_size):
+        self.epoch = 0
+        self.i = 0 # Batch index
+        self.batch_size = batch_size
+
+        file_name = f'babi/generated_data_single_fact.npz'
+        # if not os.path.exists(file_name):
+
+        file = np.load(file_name)
+        self.x, self.xq, self.y = file['arr_0'], file['arr_1'], file['arr_2']
+        self.tx, self.txq, self.ty = file['arr_3'], file['arr_4'], file['arr_5']
+        self.vocab_size = file['arr_6']
+        self.eos_vector = file['arr_7']
+
+    def get_lengths(self):
+        return self.x.shape[1], self.xq.shape[1], self.vocab_size
+
+    def next_batch(self):
+        if (self.i + 2) * self.batch_size > len(self.x):
+            self.i = 0
+            self.epoch += 1
+        else:
+            self.i += 1
+        return (self.x[self.i * self.batch_size:(self.i + 1) * self.batch_size],
+                self.xq[self.i * self.batch_size:(self.i + 1) * self.batch_size],
+                self.y[self.i * self.batch_size:(self.i + 1) * self.batch_size])
+
+    def dev_data(self):
+        return self.tx[:self.batch_size], self.txq[:self.batch_size], self.ty[:self.batch_size]
