@@ -17,11 +17,14 @@ def ps2(t, t2):
 def tp(t):
     return tf.Print([0], [t])
 
+def tps(ts):
+    return tf.Print([0], ts)
+
 def mm(t):
     return tf.matmul(t, t)
 
-def smooth_plot(values):
-    plot([np.mean(list(values.values())[0:(i + 1)]) if i < 6 else np.mean(list(values.values())[i-5:(i + 1)]) for i in range(len(values))])
+def smooth_plot(values, smooth_factor=10):
+    plot([np.mean(list(values.values())[0:(i + 1)]) if i < (smooth_factor + 1) else np.mean(list(values.values())[i-smooth_factor:(i + 1)]) for i in range(len(values))])
 
 def plot(array):
     plt.ion()

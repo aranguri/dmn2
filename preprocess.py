@@ -80,14 +80,15 @@ class BabiTask:
         self.i = 0 # Batch index
         self.batch_size = batch_size
 
-        file_name = f'babi/generated_data_single_fact.npz'
+        file_name = f'babi/generated_data_one_fact_sup.npz'
         # if not os.path.exists(file_name):
 
         file = np.load(file_name)
-        self.x, self.xq, self.y = file['arr_0'], file['arr_1'], file['arr_2']
-        self.tx, self.txq, self.ty = file['arr_3'], file['arr_4'], file['arr_5']
-        self.vocab_size = file['arr_6']
-        self.eos_vector = file['arr_7']
+        self.x, self.xq, self.y, self.sup = file['arr_0'], file['arr_1'], file['arr_2'], file['arr_3']
+        self.tx, self.txq, self.ty, tsup = file['arr_4'], file['arr_5'], file['arr_6'], file['arr_7']
+        self.vocab_size = file['arr_8']
+        self.eos_vector = file['arr_9']
+        # self.sup = np.array([np.array([int(line) for line in lines.split()]) for lines in self.sup])
 
     def get_lengths(self):
         return self.x.shape[1], self.xq.shape[1], self.vocab_size
@@ -100,7 +101,8 @@ class BabiTask:
             self.i += 1
         return (self.x[self.i * self.batch_size:(self.i + 1) * self.batch_size],
                 self.xq[self.i * self.batch_size:(self.i + 1) * self.batch_size],
-                self.y[self.i * self.batch_size:(self.i + 1) * self.batch_size])
+                self.y[self.i * self.batch_size:(self.i + 1) * self.batch_size],
+                self.sup[self.i * self.batch_size:(self.i + 1) * self.batch_size])
 
     def dev_data(self):
         return self.tx[:self.batch_size], self.txq[:self.batch_size], self.ty[:self.batch_size]

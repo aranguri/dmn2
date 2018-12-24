@@ -18,7 +18,7 @@ def tokenize(sent):
     '''
     return [x.strip() for x in re.split('(\W+)?', sent) if x.strip()]
 
-def parse_stories(lines, only_supporting=False):
+def parse_stories(lines, only_sup=False):
     '''Parse stories provided in the bAbi tasks format
     If only_supporting is true,
     only the sentences that support the answer are kept.
@@ -31,33 +31,40 @@ def parse_stories(lines, only_supporting=False):
         nid = int(nid)
         if nid == 1:
             story = []
+            sup_acc = {}
+            sup_acc[nid] = 1
         if '\t' in line:
-            q, a, supporting = line.split('\t')
+            q, a, sup = line.split('\t')
             q = tokenize(q)
-            if only_supporting:
+            if only_sup:
                 # Only select the related substory
-                supporting = map(int, supporting.split())
-                substory = [story[i - 1] for i in supporting]
+                sup = map(int, sup.split())
+                substory = [story[i - 1] for i in sup]
             else:
                 # Provide all the substories
                 substory = [x for x in story if x]
-            data.append((substory, q, a))
+
+            sup = np.array([int(n) - sup_acc[int(n)] for n in sup.split()])
+            data.append((substory, q, a, sup))
             story.append('')
+            sup_acc[nid] = sup_acc[nid - 1] + 1
         else:
+            if nid != 1:
+                sup_acc[nid] = sup_acc[nid - 1]
             sent = tokenize(line)
             story.append(sent)
     return data
 
 
-def get_stories(f, only_supporting=False, max_length=None):
+def get_stories(f, only_sup=False, max_length=None):
     '''Given a file name, read the file, retrieve the stories,
     and then convert the sentences into a single story.
     If max_length is supplied,
     any stories longer than max_length tokens will be discarded.
     '''
-    data = parse_stories(f.readlines(), only_supporting=only_supporting)
+    data = parse_stories(f.readlines(), only_sup=only_sup)
     flatten = lambda data: reduce(lambda x, y: x + y, data)
-    data = [(flatten(story), q, answer) for story, q, answer in data
+    data = [(flatten(story), q, answer, sup) for story, q, answer, sup in data
             if not max_length or len(flatten(story)) < max_length]
     return data
 
@@ -66,7 +73,9 @@ def vectorize_stories(data, word_idx, story_maxlen, query_maxlen):
     xs = []
     xqs = []
     ys = []
-    for story, query, answer in data:
+    sups = []
+
+    for story, query, answer, sup in data:
         x = [word_idx[w] for w in story]
         xq = [word_idx[w] for w in query]
         # let's not forget that index 0 is reserved
@@ -75,8 +84,11 @@ def vectorize_stories(data, word_idx, story_maxlen, query_maxlen):
         xs.append(x)
         xqs.append(xq)
         ys.append(y)
+        sups.append(sup)
+
     return (pad_sequences(xs, maxlen=story_maxlen),
-            pad_sequences(xqs, maxlen=query_maxlen), np.array(ys))
+            pad_sequences(xqs, maxlen=query_maxlen),
+            np.array(ys), np.array(sups))
 
 def get_data():
     path = get_file('babi-tasks-v1-2.tar.gz',
@@ -84,9 +96,9 @@ def get_data():
                        'babi_tasks_1-20_v1-2.tar.gz')
 
     # Default QA1 with 1000 samples
-    challenge = 'tasks_1-20_v1-2/en/qa1_single-supporting-fact_{}.txt'
+    # challenge = 'tasks_1-20_v1-2/en/qa1_single-supporting-fact_{}.txt'
     # QA1 with 10,000 samples
-    # challenge = 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt'
+    challenge = 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt'
     # QA2 with 1000 samples
     # challenge = 'tasks_1-20_v1-2/en/qa2_two-supporting-facts_{}.txt'
     # QA2 with 10,000 samples
@@ -96,19 +108,19 @@ def get_data():
         test = get_stories(tar.extractfile(challenge.format('test')))
 
     vocab = set()
-    for story, q, answer in train + test:
+    for story, q, answer, _ in train + test:
         vocab |= set(story + q + [answer])
     vocab = sorted(vocab)
 
     # Reserve 0 for masking via pad_sequences
     vocab_size = len(vocab) + 1
     word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
-    story_maxlen = max(map(len, (x for x, _, _ in train + test)))
-    query_maxlen = max(map(len, (x for _, x, _ in train + test)))
+    story_maxlen = max(map(len, (x for x, _, _, _ in train + test)))
+    query_maxlen = max(map(len, (x for _, x, _, _ in train + test)))
 
-    x, xq, y = vectorize_stories(train, word_idx, story_maxlen, query_maxlen)
-    tx, txq, ty = vectorize_stories(test, word_idx, story_maxlen, query_maxlen)
+    x, xq, y, sup = vectorize_stories(train, word_idx, story_maxlen, query_maxlen)
+    tx, txq, ty, tsup = vectorize_stories(test, word_idx, story_maxlen, query_maxlen)
 
-    np.savez('babi/generated_data_single_fact', x, xq, y, tx, txq, ty, vocab_size, word_idx['.'])
+    np.savez('babi/generated_data_one_fact_sup', x, xq, y, sup, tx, txq, ty, tsup, vocab_size, word_idx['.'])
 
 get_data()
