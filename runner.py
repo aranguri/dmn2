@@ -57,9 +57,11 @@ with tf.Session() as sess:
             # print(np.argmax(gates_, axis=2)[i], sup_[i])
             # print('---')
 
-        smooth_plot(gates_acc)
+        # smooth_plot(gates_acc)
         # print(f'Loss: {tr_loss[j]}. Accuracy: {tr_acc[j]}. Output: {np.argmax(output_, axis=1)[:15]}')
         # smooth_plot(tr_acc)
+        if j % 100 == 0:
+            print(gates_acc[j])
         '''
         if j % 10 == 0:
             input_, question_, answer_ = babi_task.dev_data()
