@@ -1,7 +1,7 @@
 import tensorflow as tf
 from utils import *
-from tensorflow import contrib.cudnn_rnn.CudnnGRU as GRU
-# from tensorflow import tf.contrib.rnn.GRUBlockCellV2 as GRU
+from tensorflow.contrib.cudnn_rnn import CudnnGRU as GRU #GPU version
+# from tensorflow.contrib.rnn import GRUBlockCellV2 as GRU #CPU version
 
 class DMNCell:
     def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, num_passes, learning_rate, reg):
