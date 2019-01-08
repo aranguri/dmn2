@@ -44,7 +44,7 @@ with tf.Session() as sess:
             # print(gates_acc[j])
             gates_acc_ = list(gates_acc.values())
             print(f'{j}) Mean: {np.mean(gates_acc_)}. Last 10: {np.mean(gates_acc_[-10:])}')
-            # smooth_plot(gates_acc)
+            smooth_plot(gates_acc)
 
         '''
         # print(f'Loss: {tr_loss[j]}. Accuracy: {tr_acc[j]}. Output: {np.argmax(output_, axis=1)[:15]}')

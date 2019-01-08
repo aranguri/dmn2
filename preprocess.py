@@ -80,7 +80,7 @@ class BabiTask:
         self.i = 0 # Batch index
         self.batch_size = batch_size
 
-        file_name = f'babi/generated_data_one_fact_sup.npz'
+        file_name = f'babi-cluster/generated_data_one_fact_sup.npz'
         file = np.load(file_name)
 
         self.x, self.xq, self.y, self.sup = file['arr_0'], file['arr_1'], file['arr_2'], file['arr_3']
