@@ -81,14 +81,12 @@ class BabiTask:
         self.batch_size = batch_size
 
         file_name = f'babi/generated_data_one_fact_sup.npz'
-        # if not os.path.exists(file_name):
-
         file = np.load(file_name)
+
         self.x, self.xq, self.y, self.sup = file['arr_0'], file['arr_1'], file['arr_2'], file['arr_3']
         self.tx, self.txq, self.ty, tsup = file['arr_4'], file['arr_5'], file['arr_6'], file['arr_7']
         self.vocab_size = file['arr_8']
         self.eos_vector = file['arr_9']
-        # self.sup = np.array([np.array([int(line) for line in lines.split()]) for lines in self.sup])
 
     def get_lengths(self):
         return self.x.shape[1], self.xq.shape[1], self.vocab_size

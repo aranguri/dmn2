@@ -1,17 +1,3 @@
-'''
-Next steps
-* train for a long time
-
-If it doesn't work (in order)
-* try to understand the code and check whether is correct.
-* making the code more concise
-* dropout on word embeddings
-* change eq 8 to a sofmtax
-
-When it works
-* allow different batch_sizes for training and test
-'''
-
 import itertools
 import tensorflow as tf
 from preprocess import BabiTask
@@ -19,7 +5,7 @@ from model import DMNCell
 import numpy as np
 from utils import *
 
-batch_size = 8
+batch_size = 32
 embeddings_size = 20
 
 babi_task = BabiTask(batch_size)
@@ -50,19 +36,18 @@ with tf.Session() as sess:
         feed_dict = {input_ids: input_, question_ids: question_,
                      answer: answer_, supporting: sup_, optimize: True}
         tr_loss[j], tr_acc[j], output_, gates_ = sess.run([loss, accuracy, output, gates], feed_dict)
+        # for i, k in zip(np.argmax(gates_, axis=2), sup_):
+            # print(i, k)
         gates_acc[j] = np.mean(np.argmax(gates_, axis=2) == sup_)
-        # print('new_case')#np.shape(gates_)[2])
-        # for i in range(batch_size):
-            # print(gates_[i])#np.argmax(gates_, axis=2)[i])
-            # print(np.argmax(gates_, axis=2)[i], sup_[i])
-            # print('---')
 
-        # smooth_plot(gates_acc)
-        # print(f'Loss: {tr_loss[j]}. Accuracy: {tr_acc[j]}. Output: {np.argmax(output_, axis=1)[:15]}')
-        # smooth_plot(tr_acc)
-        if j % 100 == 0:
-            print(gates_acc[j])
+        if j % 10 == 0:
+            # print(gates_acc[j])
+            gates_acc_ = list(gates_acc.values())
+            print(f'{j}) Mean: {np.mean(gates_acc_)}. Last 10: {np.mean(gates_acc_[-10:])}')
+            # smooth_plot(gates_acc)
+
         '''
+        # print(f'Loss: {tr_loss[j]}. Accuracy: {tr_acc[j]}. Output: {np.argmax(output_, axis=1)[:15]}')
         if j % 10 == 0:
             input_, question_, answer_ = babi_task.dev_data()
             feed_dict = {input_ids: input_, question_ids: question_, answer: answer_, optimize: False}
