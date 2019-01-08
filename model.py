@@ -1,6 +1,6 @@
 import tensorflow as tf
 from utils import *
-from tensorflow.contrib.cudnn_rnn import CudnnGRU as GRU #GPU version
+from tensorflow.contrib.cudnn_rnn import CudnnCompatibleGRUCell as GRU #GPU version
 # from tensorflow.contrib.rnn import GRUBlockCellV2 as GRU #CPU version
 
 class DMNCell:
