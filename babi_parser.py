@@ -1,14 +1,9 @@
-from __future__ import print_function
 from functools import reduce
 import re
 import tarfile
 import numpy as np
 
 from keras.utils.data_utils import get_file
-from keras.layers.embeddings import Embedding
-from keras import layers
-from keras.layers import recurrent
-from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
 
 def tokenize(sent):
@@ -36,13 +31,7 @@ def parse_stories(lines, only_sup=False):
         if '\t' in line:
             q, a, sup = line.split('\t')
             q = tokenize(q)
-            if only_sup:
-                # Only select the related substory
-                sup = map(int, sup.split())
-                substory = [story[i - 1] for i in sup]
-            else:
-                # Provide all the substories
-                substory = [x for x in story if x]
+            substory = [x for x in story if x]
 
             sup = np.array([int(n) - sup_acc[int(n)] for n in sup.split()])
             data.append((substory, q, a, sup))
@@ -98,7 +87,7 @@ def get_data():
     # Default QA1 with 1000 samples
     # challenge = 'tasks_1-20_v1-2/en/qa1_single-supporting-fact_{}.txt'
     # QA1 with 10,000 samples
-    challenge = 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt'
+    # challenge = 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt'
     # QA2 with 1000 samples
     # challenge = 'tasks_1-20_v1-2/en/qa2_two-supporting-facts_{}.txt'
     # QA2 with 10,000 samples
@@ -112,6 +101,8 @@ def get_data():
         vocab |= set(story + q + [answer])
     vocab = sorted(vocab)
 
+    print(vocab)
+    for t in train: print (t, '\n')
     # Reserve 0 for masking via pad_sequences
     vocab_size = len(vocab) + 1
     word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
@@ -121,6 +112,6 @@ def get_data():
     x, xq, y, sup = vectorize_stories(train, word_idx, story_maxlen, query_maxlen)
     tx, txq, ty, tsup = vectorize_stories(test, word_idx, story_maxlen, query_maxlen)
 
-    np.savez('babi/generated_data_one_fact_sup', x, xq, y, sup, tx, txq, ty, tsup, vocab_size, word_idx['.'])
+    # np.savez('babi/generated_data_one_fact_sup', x, xq, y, sup, tx, txq, ty, tsup, vocab_size, word_idx['.'])
 
 get_data()

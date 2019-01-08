@@ -6,7 +6,7 @@ import numpy as np
 from utils import *
 
 batch_size = 32
-embeddings_size = 20
+embeddings_size = 5
 
 babi_task = BabiTask(batch_size)
 input_length, question_length, vocab_size = babi_task.get_lengths()
@@ -22,7 +22,7 @@ input = tf.nn.embedding_lookup(embeddings, input_ids)
 question = tf.nn.embedding_lookup(embeddings, question_ids)
 eos_vector = tf.nn.embedding_lookup(embeddings, babi_task.eos_vector)
 
-dmn_cell = DMNCell(eos_vector, vocab_size, h_size=100, similarity_layer_size=15,
+dmn_cell = DMNCell(eos_vector, vocab_size, h_size=100, similarity_layer_size=100,
                    num_passes=1, learning_rate=1e-4, reg=1e-3)
 
 loss, accuracy, output, gates = dmn_cell.run(input, question, answer, supporting, optimize)

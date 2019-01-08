@@ -1,5 +1,7 @@
 import tensorflow as tf
 from utils import *
+from tensorflow import contrib.cudnn_rnn.CudnnGRU as GRU
+# from tensorflow import tf.contrib.rnn.GRUBlockCellV2 as GRU
 
 class DMNCell:
     def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, num_passes, learning_rate, reg):
@@ -12,9 +14,9 @@ class DMNCell:
         self.optimizer = tf.train.AdamOptimizer(learning_rate)
         self.reg = reg
         # Params for prioritizing one loss over the other
-        self.alpha = 0
-        self.beta = 1
-        self.memory_gru = tf.contrib.rnn.GRUCell(self.h_size)
+        self.alpha = 1
+        self.beta = 0
+        self.memory_gru = GRU(self.h_size)
 
     def run(self, input, question, answer, supporting, optimize):
         self.batch_size = tf.shape(input)[0]
@@ -53,7 +55,7 @@ class DMNCell:
         return loss, accuracy, output, gates
 
     def first_call(self, input, question):
-        input_gru = tf.contrib.rnn.GRUCell(self.h_size)
+        input_gru = GRU(self.h_size)
         input_states, _ = tf.nn.dynamic_rnn(input_gru, input, dtype=tf.float32, scope='GRU_i')
 
         # We obtain only the hidden states at the end of the sentences
@@ -68,7 +70,7 @@ class DMNCell:
 
         eos_input_states = tf.map_fn(get_eos_states, tf.range(self.batch_size), tf.float32)
 
-        question_gru = tf.contrib.rnn.GRUCell(self.h_size)
+        question_gru = GRU(self.h_size)
         _, question_state = tf.nn.dynamic_rnn(question_gru, question, dtype=tf.float32, scope='GRU_q')
 
         return eos_input_states, question_state
@@ -94,7 +96,7 @@ class DMNCell:
         swapped_input = tf.transpose(input_states, [1, 0, 2])
         gates = tf.map_fn(similarity, swapped_input)
         gates = tf.transpose(gates, [1, 0, 2])
-        episode_gru = tf.contrib.rnn.GRUCell(self.h_size)
+        episode_gru = GRU(self.h_size)
 
         episode_cond = lambda state, i: tf.less(i, self.seq_length)
         def episode_loop(state, i):
@@ -111,7 +113,7 @@ class DMNCell:
         return next_memory_state, gates
 
     def last_call(self, question_states, last_memory_state):
-        answer_gru = tf.contrib.rnn.GRUCell(self.h_size)
+        answer_gru = GRU(self.h_size)
         answer_state = answer_gru(question_states, last_memory_state)[0]
         output = tf.layers.dense(answer_state, self.vocab_size, use_bias=False)
 
