@@ -5,27 +5,25 @@ from model import DMNCell
 import numpy as np
 from utils import *
 
-batch_size = 32
-embeddings_size = 5
+batch_size = 16
+embeddings_size = 12
 
 babi_task = BabiTask(batch_size)
 input_length, question_length, vocab_size = babi_task.get_lengths()
 
 input_ids = tf.placeholder(tf.int32, shape=(batch_size, input_length))
 question_ids = tf.placeholder(tf.int32, shape=(batch_size, question_length))
-answer = tf.placeholder(tf.int32, shape=(batch_size, vocab_size))
 supporting = tf.placeholder(tf.int32, shape=(batch_size, None))
-optimize = tf.placeholder(tf.bool, shape=())
 
-embeddings = tf.random_normal((vocab_size, embeddings_size), stddev=.1)
+embeddings = tf.get_variable('embedding', shape=(vocab_size, embeddings_size))
 input = tf.nn.embedding_lookup(embeddings, input_ids)
 question = tf.nn.embedding_lookup(embeddings, question_ids)
 eos_vector = tf.nn.embedding_lookup(embeddings, babi_task.eos_vector)
 
-dmn_cell = DMNCell(eos_vector, vocab_size, h_size=100, similarity_layer_size=100,
-                   num_passes=1, learning_rate=1e-4, reg=1e-3)
+dmn_cell = DMNCell(eos_vector, vocab_size, h_size=512, similarity_layer_size=512,
+                   learning_rate=1e-4)
 
-loss, accuracy, output, gates = dmn_cell.run(input, question, answer, supporting, optimize)
+loss, accuracy, gates = dmn_cell.run(input, question, supporting)
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
@@ -34,17 +32,18 @@ with tf.Session() as sess:
     for j in itertools.count():
         input_, question_, answer_, sup_ = babi_task.next_batch()
         feed_dict = {input_ids: input_, question_ids: question_,
-                     answer: answer_, supporting: sup_, optimize: True}
-        tr_loss[j], tr_acc[j], output_, gates_ = sess.run([loss, accuracy, output, gates], feed_dict)
-        # for i, k in zip(np.argmax(gates_, axis=2), sup_):
-            # print(i, k)
+                     supporting: sup_}
+        tr_loss[j], tr_acc[j], gates_ = sess.run([loss, accuracy, gates], feed_dict)
         gates_acc[j] = np.mean(np.argmax(gates_, axis=2) == sup_)
 
         if j % 10 == 0:
-            # print(gates_acc[j])
+            # print_all_vars(sess)
+            for i, k in zip(np.argmax(gates_, axis=2), sup_):
+                print(i, k)
             gates_acc_ = list(gates_acc.values())
             print(f'{j}) Mean: {np.mean(gates_acc_)}. Last 10: {np.mean(gates_acc_[-10:])}')
             smooth_plot(gates_acc)
+            # smooth_plot(tr_loss)
 
         '''
         # print(f'Loss: {tr_loss[j]}. Accuracy: {tr_acc[j]}. Output: {np.argmax(output_, axis=1)[:15]}')

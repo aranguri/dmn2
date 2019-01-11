@@ -14,11 +14,11 @@ def psi(t):
 def ps2(t, t2):
     return tf.matmul(t, t2)
 
-def tp(t):
-    return tf.Print([0], [t])
+def tp(t, summarize=10000):
+    return tf.Print([0], [t], summarize=summarize)
 
-def tps(ts):
-    return tf.Print([0], ts)
+def tps(ts, summarize=10000):
+    return tf.Print([0], ts, summarize=summarize)
 
 def mm(t):
     return tf.matmul(t, t)
@@ -38,3 +38,14 @@ def plot(array):
     plt.ylim(0, ylim)#2000)#.6)
     plt.plot(array)
     plt.pause(1e-8)
+
+def print_all_vars(sess):
+    variables_names = [v.name for v in tf.trainable_variables()]
+    values = sess.run(variables_names)
+    print(values[5][0])
+    '''
+    for k, v in zip(variables_names, values):
+        print ("Variable: ", k)
+        print ("Shape: ", v.shape)
+        print (v[0][0])
+    '''

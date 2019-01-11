@@ -20,7 +20,7 @@ def parse_stories(lines, only_sup=False):
     '''
     data = []
     story = []
-    for line in lines:
+    for line in lines:#[:10]:
         line = line.decode('utf-8').strip()
         nid, line = line.split(' ', 1)
         nid = int(nid)
@@ -75,8 +75,8 @@ def vectorize_stories(data, word_idx, story_maxlen, query_maxlen):
         ys.append(y)
         sups.append(sup)
 
-    return (pad_sequences(xs, maxlen=story_maxlen),
-            pad_sequences(xqs, maxlen=query_maxlen),
+    return (pad_sequences(xs, maxlen=story_maxlen, padding='post'),
+            pad_sequences(xqs, maxlen=query_maxlen, padding='post'),
             np.array(ys), np.array(sups))
 
 def get_data():
@@ -87,7 +87,7 @@ def get_data():
     # Default QA1 with 1000 samples
     # challenge = 'tasks_1-20_v1-2/en/qa1_single-supporting-fact_{}.txt'
     # QA1 with 10,000 samples
-    # challenge = 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt'
+    challenge = 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt'
     # QA2 with 1000 samples
     # challenge = 'tasks_1-20_v1-2/en/qa2_two-supporting-facts_{}.txt'
     # QA2 with 10,000 samples
@@ -101,8 +101,6 @@ def get_data():
         vocab |= set(story + q + [answer])
     vocab = sorted(vocab)
 
-    print(vocab)
-    for t in train: print (t, '\n')
     # Reserve 0 for masking via pad_sequences
     vocab_size = len(vocab) + 1
     word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
@@ -112,6 +110,6 @@ def get_data():
     x, xq, y, sup = vectorize_stories(train, word_idx, story_maxlen, query_maxlen)
     tx, txq, ty, tsup = vectorize_stories(test, word_idx, story_maxlen, query_maxlen)
 
-    # np.savez('babi/generated_data_one_fact_sup', x, xq, y, sup, tx, txq, ty, tsup, vocab_size, word_idx['.'])
+    np.savez('babi/generated_data_one_fact_sup_10k', x, xq, y, sup, tx, txq, ty, tsup, vocab_size, word_idx['.'])
 
 get_data()
