@@ -66,3 +66,7 @@ With 1k cases, it reaches the answer 1,3 ,5, 7. However, with 10k it doesn't do 
 It may be the case that the hyperparams are wrong.
 
 possible explanation: weights are saturated
+
+add flags
+add dropout .15 dropping
+monitor the gradient size 

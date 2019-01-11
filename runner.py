@@ -5,8 +5,8 @@ from model import DMNCell
 import numpy as np
 from utils import *
 
-batch_size = 16
-embeddings_size = 12
+batch_size = 64
+embeddings_size = 256
 
 babi_task = BabiTask(batch_size)
 input_length, question_length, vocab_size = babi_task.get_lengths()
