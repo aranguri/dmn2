@@ -42,7 +42,7 @@ with tf.Session() as sess:
                 print(i, k)
             gates_acc_ = list(gates_acc.values())
             print(f'{j}) Mean: {np.mean(gates_acc_)}. Last 10: {np.mean(gates_acc_[-10:])}')
-            smooth_plot(gates_acc)
+            # smooth_plot(gates_acc)
             # smooth_plot(tr_loss)
 
         '''
