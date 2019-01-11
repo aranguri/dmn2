@@ -69,4 +69,6 @@ possible explanation: weights are saturated
 
 add flags
 add dropout .15 dropping
-monitor the gradient size 
+monitor the gradient size
+
+avoid using map_fn

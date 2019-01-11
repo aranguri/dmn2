@@ -21,7 +21,7 @@ question = tf.nn.embedding_lookup(embeddings, question_ids)
 eos_vector = tf.nn.embedding_lookup(embeddings, babi_task.eos_vector)
 
 dmn_cell = DMNCell(eos_vector, vocab_size, h_size=512, similarity_layer_size=512,
-                   learning_rate=1e-4)
+                   learning_rate=1e-3)
 
 loss, accuracy, gates = dmn_cell.run(input, question, supporting)
 
@@ -38,8 +38,8 @@ with tf.Session() as sess:
 
         if j % 10 == 0:
             # print_all_vars(sess)
-            for i, k in zip(np.argmax(gates_, axis=2), sup_):
-                print(i, k)
+            # for i, k in zip(np.argmax(gates_, axis=2), sup_):
+                # print(i, k)
             gates_acc_ = list(gates_acc.values())
             print(f'{j}) Mean: {np.mean(gates_acc_)}. Last 10: {np.mean(gates_acc_[-10:])}')
             # smooth_plot(gates_acc)

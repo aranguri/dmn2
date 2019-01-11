@@ -39,9 +39,9 @@ class DMNCell:
 
         # This operation doesn't seem to be GPU-friendly
         def get_eos_states(i):
-            rolled_mask = tf.roll(mask[i], -1, 0)
+            # rolled_mask = tf.roll(mask[i], -1, 0)
             # We shift the mask one to the left to avoid selecting the state where we input the dot
-            eos_states = tf.boolean_mask(input_states[i], rolled_mask)
+            eos_states = tf.boolean_mask(input_states[i], mask[i])
             padding = [[0, self.seq_length - tf.shape(eos_states)[0],], [0, 0,]]
             return tf.pad(eos_states, padding, 'constant')
 
