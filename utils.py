@@ -35,7 +35,7 @@ def plot(array):
     ylim = 2 ** (1 + int(np.log2(np.maximum(max(array), 1e-8))))
 
     plt.xlim(0, xlim)
-    plt.ylim(0, ylim)#2000)#.6)
+    plt.ylim(0, ylim)
     plt.plot(array)
     plt.pause(1e-8)
 
@@ -49,3 +49,15 @@ def print_all_vars(sess):
         print ("Shape: ", v.shape)
         print (v[0][0])
     '''
+
+def print_gradients(sess, loss, feed_dict):
+    gradients = tf.gradients(loss, tf.trainable_variables())
+    gradients_ = sess.run(gradients, feed_dict)
+
+    for var, grad in zip(tf.trainable_variables(), gradients_):
+        if np.shape(grad) == (3,):
+            grad = grad[0]
+
+        norm = np.linalg.norm(grad)
+        value = sess.run(var, feed_dict)
+        print (var.name, norm)

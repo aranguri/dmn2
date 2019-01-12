@@ -11,22 +11,22 @@ class DMNCell:
         self.similarity_layer_size = similarity_layer_size
         self.vocab_size = vocab_size
         self.optimizer = tf.train.AdamOptimizer(learning_rate)
-        self.memory_gru = GRU(self.h_size)
 
     def run(self, input, question, supporting):
         self.batch_size = tf.shape(input)[0]
         # Running
         input_states, question_state = self.first_call(input, question)
-        _, gates = self.memory_call(question_state, input_states, question_state)
+        gates = self.memory_call(input_states, question_state)
 
         # optimizing
-        supporting = tf.one_hot(supporting, self.seq_length)
+        supporting_out = tf.one_hot(supporting, self.seq_length)
+        supporting = tf.squeeze(supporting_out)
         loss = tf.losses.softmax_cross_entropy(supporting, gates)
         minimize = self.optimizer.minimize(loss)
         with tf.control_dependencies([minimize]):
-            accuracy = tf.constant(1.)
+            loss = tf.identity(loss)
 
-        return loss, accuracy, gates
+        return loss, gates
 
     def first_call(self, input, question):
         input_gru = GRU(self.h_size)
@@ -52,26 +52,13 @@ class DMNCell:
 
         return eos_input_states, question_state
 
-    def memory_call(self, memory_state, input_states, question_state):
-        W = tf.get_variable('W_b', (self.h_size, self.h_size))
-        m, q = memory_state, question_state
+    def memory_call(self, input_states, question_state):
+        question_tiled = tf.tile(question_state, [self.seq_length, 1])
+        question_stacked = tf.reshape(question_tiled, (self.batch_size, self.seq_length, self.h_size))
+        input = tf.concat((input_states, question_stacked), axis=2)
+        h1 = tf.layers.dense(input, self.similarity_layer_size, activation=tf.nn.relu)
+        h2 = tf.layers.dense(h1, self.similarity_layer_size, activation=tf.nn.relu)
+        out = tf.layers.dense(h2, 1, activation=tf.nn.relu)
+        gates = tf.squeeze(out)
 
-        def similarity(c):
-            cW = tf.matmul(c, W)
-            cWq = tf.reduce_sum(cW * q, axis=1, keepdims=True)
-            cWm = tf.reduce_sum(cW * m, axis=1, keepdims=True)
-            padding = [[0, 0,], [0, self.h_size - 1]]
-            cWq = tf.pad(cWq, padding, 'constant')
-            cWm = tf.pad(cWm, padding, 'constant')
-
-            z = [c, m, q, c * m, c * q, tf.abs(c - m), tf.abs(c - q), cWq, cWm]
-            z_stacked = tf.reshape(tf.stack(z, axis=1), (self.batch_size, len(z) * self.h_size))
-            h_layer = tf.layers.dense(z_stacked, self.similarity_layer_size, activation=tf.nn.tanh)
-            gate = tf.layers.dense(h_layer, 1, activation=tf.nn.sigmoid)
-            return gate
-
-        swapped_input = tf.transpose(input_states, [1, 0, 2])
-        swapped_gates = tf.map_fn(similarity, swapped_input)
-        gates = tf.transpose(swapped_gates, [1, 2, 0])
-
-        return None, gates
+        return gates
