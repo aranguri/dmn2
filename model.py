@@ -59,9 +59,9 @@ class DMNCell:
         question_tiled = tf.tile(question_state, [self.seq_length, 1])
         question_stacked = tf.reshape(question_tiled, (self.batch_size, self.seq_length, self.h_size))
         input = tf.concat((input_states, question_stacked), axis=2)
-        h1 = tf.layers.dense(input, self.similarity_layer_size, activation=tf.nn.relu)
-        h2 = tf.layers.dense(h1, self.similarity_layer_size, activation=tf.nn.relu)
-        out = tf.layers.dense(h2, 1, activation=tf.nn.sigmoid)
+        h1 = tf.layers.dense(input, self.similarity_layer_size, activation=tf.nn.tanh)
+        h2 = tf.layers.dense(h1, self.similarity_layer_size, activation=tf.nn.tanh)
+        out = tf.layers.dense(h2, 1)
         gates = tf.squeeze(out)
 
         return gates
