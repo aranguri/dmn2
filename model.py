@@ -20,10 +20,11 @@ class DMNCell:
 
         # optimizing
         supporting_out = tf.one_hot(supporting_hot, self.seq_length)
+        supporting_hot2 = tf.squeeze(supporting_hot)
         supporting = tf.squeeze(supporting_out)
         gates_hot = tf.argmax(gates, axis=1)
-        acc = tf.to_float(tf.equal(supporting_hot, gates_hot))
-        with tf.control_dependencies([tps([supporting[:10], gates[:10], acc[:10]])]):
+        acc = tf.to_float(tf.equal(supporting_hot2, tf.to_int32(gates_hot)))
+        with tf.control_dependencies([tps([supporting_hot2[:10], gates_hot[:10], acc[:10]])]):
             loss = tf.losses.softmax_cross_entropy(supporting, gates)
         minimize = self.optimizer.minimize(loss)
         with tf.control_dependencies([minimize]):

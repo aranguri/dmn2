@@ -33,6 +33,7 @@ with tf.Session() as sess:
         input_, question_, answer_, sup_ = babi_task.next_batch()
         feed_dict = {input_ids: input_, question_ids: question_, supporting: sup_}
         tr_loss[j], gates_ = sess.run([loss, gates], feed_dict)
+        sup_ = np.squeeze(sup_)
         gates_acc[j] = np.mean(np.argmax(gates_, axis=1) == sup_)
 
         if j % 10 == 0:
