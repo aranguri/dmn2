@@ -6,31 +6,28 @@ from tensorflow.contrib.cudnn_rnn import CudnnCompatibleGRUCell as GRU #GPU vers
 class DMNCell:
     def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, learning_rate):
         self.eos_vector = eos_vector
-        self.h_size = h_size
-        # similarity_layer_size is the size of the hidden layer in the similarity function G (eq 6)
-        self.similarity_layer_size = similarity_layer_size
         self.vocab_size = vocab_size
+        self.h_size = h_size
+        self.similarity_layer_size = similarity_layer_size
         self.optimizer = tf.train.AdamOptimizer(learning_rate)
 
     def run(self, input, question, supporting_hot):
-        self.batch_size = tf.shape(input)[0]
         # Running
+        self.batch_size = tf.shape(input)[0]
         input_states, question_state = self.first_call(input, question)
         gates = self.memory_call(input_states, question_state)
 
         # optimizing
-        supporting_out = tf.one_hot(supporting_hot, self.seq_length)
-        supporting_hot2 = tf.squeeze(supporting_hot)
-        supporting = tf.squeeze(supporting_out)
-        gates_hot = tf.argmax(gates, axis=1)
-        acc = tf.to_float(tf.equal(supporting_hot2, tf.to_int32(gates_hot)))
-        with tf.control_dependencies([tps([supporting_hot2[:10], gates_hot[:10], acc[:10]])]):
+        supporting = tf.one_hot(supporting_hot, self.seq_length)
+        gates_hot = tf.argmax(gates, axis=2)
+        accuracy = tf.reduce_mean(tf.to_float(tf.equal(supporting_hot, tf.to_int32(gates_hot))))
+        with tf.control_dependencies([tps([supporting_hot[:10], gates_hot[:10], accuracy])]):
             loss = tf.losses.softmax_cross_entropy(supporting, gates)
         minimize = self.optimizer.minimize(loss)
         with tf.control_dependencies([minimize]):
             loss = tf.identity(loss)
 
-        return loss, gates
+        return loss, accuracy, gates
 
     def first_call(self, input, question):
         input_gru = GRU(self.h_size)
@@ -63,6 +60,6 @@ class DMNCell:
         h1 = tf.layers.dense(input, self.similarity_layer_size, activation=tf.nn.tanh)
         h2 = tf.layers.dense(h1, self.similarity_layer_size, activation=tf.nn.tanh)
         out = tf.layers.dense(h2, 1)
-        gates = tf.squeeze(out)
+        gates = tf.transpose(out, [0, 2, 1])
 
         return gates

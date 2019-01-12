@@ -74,3 +74,9 @@ monitor the gradient size
 avoid using map_fn
 
 decay learning rate
+
+lesson: everything could be wrong. assume there is a bug somewhere, because it's almost always the case. there are details in lowlevel things (eg calculating accuracy) that can make us think that somethign on the top is wrong. thus, try to make sure the base is correct before starting with the things on top of it.
+
+how to search in console tf.TAB
+
+how to mkae tf calculate accuracy
