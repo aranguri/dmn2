@@ -12,16 +12,18 @@ class DMNCell:
         self.vocab_size = vocab_size
         self.optimizer = tf.train.AdamOptimizer(learning_rate)
 
-    def run(self, input, question, supporting):
+    def run(self, input, question, supporting_hot):
         self.batch_size = tf.shape(input)[0]
         # Running
         input_states, question_state = self.first_call(input, question)
         gates = self.memory_call(input_states, question_state)
 
         # optimizing
-        supporting_out = tf.one_hot(supporting, self.seq_length)
+        supporting_out = tf.one_hot(supporting_hot, self.seq_length)
         supporting = tf.squeeze(supporting_out)
-        with tf.control_dependencies([tps([supporting, gates])]):
+        gates_hot = tf.argmax(gates, axis=1)
+        acc = tf.to_float(tf.equal(supporting_hot, gates_hot))
+        with tf.control_dependencies([tps([supporting[:10], gates[:10], acc[:10]])]):
             loss = tf.losses.softmax_cross_entropy(supporting, gates)
         minimize = self.optimizer.minimize(loss)
         with tf.control_dependencies([minimize]):
