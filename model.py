@@ -21,7 +21,8 @@ class DMNCell:
         # optimizing
         supporting_out = tf.one_hot(supporting, self.seq_length)
         supporting = tf.squeeze(supporting_out)
-        loss = tf.losses.softmax_cross_entropy(supporting, gates)
+        with tf.control_dependencies([tps([supporting, gates])]):
+            loss = tf.losses.softmax_cross_entropy(supporting, gates)
         minimize = self.optimizer.minimize(loss)
         with tf.control_dependencies([minimize]):
             loss = tf.identity(loss)
@@ -58,7 +59,7 @@ class DMNCell:
         input = tf.concat((input_states, question_stacked), axis=2)
         h1 = tf.layers.dense(input, self.similarity_layer_size, activation=tf.nn.relu)
         h2 = tf.layers.dense(h1, self.similarity_layer_size, activation=tf.nn.relu)
-        out = tf.layers.dense(h2, 1, activation=tf.nn.relu)
+        out = tf.layers.dense(h2, 1, activation=tf.nn.sigmoid)
         gates = tf.squeeze(out)
 
         return gates
