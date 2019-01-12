@@ -72,3 +72,5 @@ add dropout .15 dropping
 monitor the gradient size
 
 avoid using map_fn
+
+decay learning rate

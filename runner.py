@@ -21,9 +21,10 @@ question = tf.nn.embedding_lookup(embeddings, question_ids)
 eos_vector = tf.nn.embedding_lookup(embeddings, babi_task.eos_vector)
 
 dmn_cell = DMNCell(eos_vector, vocab_size, h_size=512, similarity_layer_size=512,
-                   learning_rate=1e-3)
+                   learning_rate=1e-4)
 
 loss, accuracy, gates = dmn_cell.run(input, question, supporting)
+gradients = tf.gradients(loss, tf.trainable_variables())
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
@@ -33,15 +34,27 @@ with tf.Session() as sess:
         input_, question_, answer_, sup_ = babi_task.next_batch()
         feed_dict = {input_ids: input_, question_ids: question_,
                      supporting: sup_}
-        tr_loss[j], tr_acc[j], gates_ = sess.run([loss, accuracy, gates], feed_dict)
+        tr_loss[j], tr_acc[j], gates_, gradients_ = sess.run([loss, accuracy, gates, gradients], feed_dict)
         gates_acc[j] = np.mean(np.argmax(gates_, axis=2) == sup_)
 
         if j % 10 == 0:
-            # print_all_vars(sess)
+            # ps(gradients_[0][0])
+            # ps(gradients_[0][1])
+            # ps(gradients_[0][2])
+            #ps(gradients_)
+            for var, grad in zip(tf.trainable_variables(), gradients_):
+                if np.shape(grad) == (3,):
+                    grad = grad[0]
+
+                norm = np.linalg.norm(grad)
+                value = sess.run(var, feed_dict)
+                print (var.name, norm)
+
             # for i, k in zip(np.argmax(gates_, axis=2), sup_):
                 # print(i, k)
             gates_acc_ = list(gates_acc.values())
-            print(f'{j}) Mean: {np.mean(gates_acc_)}. Last 10: {np.mean(gates_acc_[-10:])}')
+            tr_loss_ = list(tr_loss.values())
+            print(f'{j}) Last 10 loss: {np.mean(tr_loss_[-10:])}. Mean gates: {np.mean(gates_acc_)}. Last 10: {np.mean(gates_acc_[-10:])}')
             # smooth_plot(gates_acc)
             # smooth_plot(tr_loss)
 
