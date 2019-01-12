@@ -15,10 +15,13 @@ def ps2(t, t2):
     return tf.matmul(t, t2)
 
 def tp(t, summarize=10000):
-    return tf.Print([0], [t], summarize=summarize)
+    return tf.control_dependencies([tf.Print([0], [t], summarize=summarize)])
 
 def tps(ts, summarize=10000):
-    return tf.Print([0], ts, summarize=summarize)
+    return tf.control_dependencies([tf.Print([0], ts, summarize=summarize)])
+
+def ts(t, summarize=10000):
+    return tf.control_dependencies([tf.Print([0], [tf.shape(t)], summarize=summarize)])
 
 def mm(t):
     return tf.matmul(t, t)

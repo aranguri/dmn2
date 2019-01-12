@@ -17,15 +17,16 @@ class DMNCell:
         input_states, question_state = self.first_call(input, question)
         gates = self.memory_call(input_states, question_state)
 
-        # optimizing
+        # Minimizing loss
         supporting = tf.one_hot(supporting_hot, self.seq_length)
-        gates_hot = tf.argmax(gates, axis=2)
-        accuracy = tf.reduce_mean(tf.to_float(tf.equal(supporting_hot, tf.to_int32(gates_hot))))
-        with tf.control_dependencies([tps([supporting_hot[:10], gates_hot[:10], accuracy])]):
-            loss = tf.losses.softmax_cross_entropy(supporting, gates)
+        loss = tf.losses.softmax_cross_entropy(supporting, gates)
         minimize = self.optimizer.minimize(loss)
         with tf.control_dependencies([minimize]):
             loss = tf.identity(loss)
+
+        # Accuracy
+        gates_hot = tf.argmax(gates, axis=2)
+        accuracy = tf.reduce_mean(tf.to_float(tf.equal(supporting_hot, tf.to_int32(gates_hot))))
 
         return loss, accuracy, gates
 
@@ -33,7 +34,7 @@ class DMNCell:
         input_gru = GRU(self.h_size)
         input_states, _ = tf.nn.dynamic_rnn(input_gru, input, dtype=tf.float32, scope='GRU_i')
 
-        # We obtain only the hidden states at the end of the sentences
+        #alternative: do this by using tf.where(mask, input, tf.zeros_like(input)) and then (somehow) removing the zeros
         mask = tf.reduce_all(tf.equal(input, self.eos_vector), axis=2)
         max_length = tf.reduce_sum(tf.to_float(mask), axis=1)
         self.seq_length = tf.to_int32(tf.reduce_max(max_length))
@@ -58,8 +59,11 @@ class DMNCell:
         question_stacked = tf.reshape(question_tiled, (self.batch_size, self.seq_length, self.h_size))
         input = tf.concat((input_states, question_stacked), axis=2)
         h1 = tf.layers.dense(input, self.similarity_layer_size, activation=tf.nn.tanh)
-        h2 = tf.layers.dense(h1, self.similarity_layer_size, activation=tf.nn.tanh)
-        out = tf.layers.dense(h2, 1)
+        # h2 = tf.layers.dense(h1, self.similarity_layer_size, activation=tf.nn.tanh)
+        out = tf.layers.dense(h1, 1)
         gates = tf.transpose(out, [0, 2, 1])
 
         return gates
+
+#64x10x512
+#64x512
