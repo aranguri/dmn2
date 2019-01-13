@@ -25,7 +25,8 @@ class DMNCell:
             minimize = self.minimize_op(loss)
             with tf.control_dependencies([minimize]):
                 return tf.identity(loss)
-        maybe_minimize_op = tf.cond(self.optimize, minimize_fn, lambda: tf.identity(0.))
+
+        maybe_minimize_op = tf.cond(self.optimize, minimize_fn, tf.no_op)
 
         with tf.control_dependencies([maybe_minimize_op]):
             loss = tf.identity(loss)
@@ -67,10 +68,11 @@ class DMNCell:
         cW = tf.einsum('ijk,kl->ijl', c, W)
         cWq = tf.einsum('ijk,ilk->ij', cW, q)
         cWq = tf.expand_dims(cWq, 2)
-        cWq = tf.pad(cWq, ((0, 0,), (0, 0), (0, self.h_size - 1)), 'constant')
+        # cWq = tf.pad(cWq, ((0, 0,), (0, 0), (0, self.h_size - 1)), 'constant')
 
-        z = [c, qs, tf.abs(c - q), c * q, cWq]
-        input = tf.reshape(tf.stack(z, axis=2), (self.batch_size, self.seq_length, len(z) * self.h_size))
+        z = (c, qs, tf.abs(c - q), c * q, cWq)
+        z_concat = tf.concat(z, axis=2)
+        input = tf.reshape(z_concat, (self.batch_size, self.seq_length, (len(z) - 1) * h_size + 1))
         h1 = tf.layers.dense(input, self.similarity_layer_size, activation=tf.nn.tanh)
         out = tf.layers.dense(h1, 1)#, activation=tf.nn.sigmoid)
         gates = tf.transpose(out, [0, 2, 1])

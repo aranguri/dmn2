@@ -42,7 +42,7 @@ with tf.Session() as sess:
         if j % debug_steps == 0:
             input_, question_, answer_, sup_ = babi_task.dev_data()
             feed_dict = {input_ids: input_, question_ids: question_, supporting: sup_,
-                         train: False}
+                         train: True}
             dev_loss[j/debug_steps], dev_gates[j/debug_steps], gates_ = sess.run([loss, accuracy, gates], feed_dict)
 
             tr_loss_, tr_gates_ = list(tr_loss.values()), list(tr_gates.values())
