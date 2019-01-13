@@ -34,13 +34,11 @@ with tf.Session() as sess:
 
     for j in itertools.count():
         input_, question_, answer_, sup_ = babi_task.next_batch()
-        sup_ = np.ones_like(sup_) * 8#np.random.randint(8, size=sup_.shape)
         feed_dict = {input_ids: input_, question_ids: question_, supporting: sup_}
         tr_loss[j], tr_gates[j], gates_, _ = sess.run([loss, accuracy, gates, minimize], feed_dict)
 
         if j % debug_steps == 0:
             input_, question_, answer_, sup_ = babi_task.dev_data()
-            sup_ = np.ones_like(sup_) * 8#np.random.randint(8, size=sup_.shape)
             feed_dict = {input_ids: input_, question_ids: question_, supporting: sup_}
             dev_loss[j/debug_steps], dev_gates[j/debug_steps], gates_ = sess.run([loss, accuracy, gates], feed_dict)
 
