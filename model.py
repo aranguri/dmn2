@@ -1,7 +1,7 @@
 import tensorflow as tf
 from utils import *
-# from tensorflow.contrib.cudnn_rnn import CudnnCompatibleGRUCell as GRU #GPU version
-from tensorflow.contrib.rnn import GRUCell as GRU #CPU version
+from tensorflow.contrib.cudnn_rnn import CudnnCompatibleGRUCell as GRU #GPU version
+# from tensorflow.contrib.rnn import GRUCell as GRU #CPU version
 
 class DMNCell:
     def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, learning_rate, optimize):
@@ -25,7 +25,7 @@ class DMNCell:
             minimize = self.minimize_op(loss)
             with tf.control_dependencies([minimize]):
                 return tf.identity(loss)
-        maybe_minimize_op = tf.cond(self.optimize, minimize_fn, lambda: tf.identity(loss))
+        maybe_minimize_op = tf.cond(self.optimize, minimize_fn, lambda: tf.identity(0))
 
         with tf.control_dependencies([maybe_minimize_op]):
             loss = tf.identity(loss)
@@ -60,10 +60,11 @@ class DMNCell:
 
         return eos_input_states, question_state
 
-    def memory_call(self, input_states, question_state):
-        # with ts(question_state):
-        question_tiled = tf.tile(question_state, [self.seq_length, 1])
-        question_stacked = tf.reshape(question_tiled, (self.batch_size, self.seq_length, self.h_size))
+    def memory_call(self, c, q):
+        q = tf.expand_dims(q, 1)
+
+        qs = tf.tile(q, [1, self.seq_length, 1])
+        [c, qs, tf.abs(c - q)]
         input = tf.concat((input_states, question_stacked), axis=2)
         h1 = tf.layers.dense(input, self.similarity_layer_size, activation=tf.nn.tanh)
         # h2 = tf.layers.dense(h1, self.similarity_layer_size, activation=tf.nn.tanh)
