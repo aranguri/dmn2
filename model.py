@@ -25,7 +25,7 @@ class DMNCell:
             minimize = self.minimize_op(loss)
             with tf.control_dependencies([minimize]):
                 return tf.identity(loss)
-        maybe_minimize_op = tf.cond(self.optimize, minimize_fn, lambda: tf.identity(0))
+        maybe_minimize_op = tf.cond(self.optimize, minimize_fn, lambda: tf.identity(0.))
 
         with tf.control_dependencies([maybe_minimize_op]):
             loss = tf.identity(loss)
