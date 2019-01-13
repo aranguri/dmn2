@@ -4,13 +4,12 @@ from tensorflow.contrib.cudnn_rnn import CudnnCompatibleGRUCell as GRU #GPU vers
 # from tensorflow.contrib.rnn import GRUCell as GRU #CPU version
 
 class DMNCell:
-    def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, learning_rate, optimize):
+    def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, learning_rate):
         self.eos_vector = eos_vector
         self.vocab_size = vocab_size
         self.h_size = h_size
         self.similarity_layer_size = similarity_layer_size
         self.optimizer = tf.train.AdamOptimizer(learning_rate)
-        self.optimize = optimize
 
     def run(self, input, question, supporting_hot):
         # Running
@@ -21,15 +20,6 @@ class DMNCell:
         # Minimizing loss
         supporting = tf.one_hot(supporting_hot, self.seq_length)
         loss = tf.losses.softmax_cross_entropy(supporting, gates)
-        def minimize_fn():
-            minimize = self.minimize_op(loss)
-            with tf.control_dependencies([minimize]):
-                return tf.identity(loss)
-
-        maybe_minimize_op = tf.cond(self.optimize, minimize_fn, tf.no_op)
-
-        with tf.control_dependencies([maybe_minimize_op]):
-            loss = tf.identity(loss)
 
         # Accuracy
         gates_hot = tf.argmax(gates, axis=2)
@@ -72,7 +62,7 @@ class DMNCell:
 
         z = (c, qs, tf.abs(c - q), c * q, cWq)
         z_concat = tf.concat(z, axis=2)
-        input = tf.reshape(z_concat, (self.batch_size, self.seq_length, (len(z) - 1) * h_size + 1))
+        input = tf.reshape(z_concat, (self.batch_size, self.seq_length, (len(z) - 1) * self.h_size + 1))
         h1 = tf.layers.dense(input, self.similarity_layer_size, activation=tf.nn.tanh)
         out = tf.layers.dense(h1, 1)#, activation=tf.nn.sigmoid)
         gates = tf.transpose(out, [0, 2, 1])

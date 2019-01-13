@@ -103,5 +103,5 @@ class BabiTask:
                 self.y[self.i * self.batch_size:(self.i + 1) * self.batch_size],
                 self.sup[self.i * self.batch_size:(self.i + 1) * self.batch_size])
 
-    def dev_data(self):
-        return self.tx[:300], self.txq[:300], self.ty[:300], self.tsup[:300]
+    def dev_data(self, num_cases=100):
+        return self.tx[:num_cases], self.txq[:num_cases], self.ty[:num_cases], self.tsup[:num_cases]
