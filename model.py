@@ -1,15 +1,16 @@
 import tensorflow as tf
 from utils import *
-from tensorflow.contrib.cudnn_rnn import CudnnCompatibleGRUCell as GRU #GPU version
-# from tensorflow.contrib.rnn import GRUCell as GRU #CPU version
+# from tensorflow.contrib.cudnn_rnn import CudnnCompatibleGRUCell as GRU #GPU version
+from tensorflow.contrib.rnn import GRUCell as GRU #CPU version
 
 class DMNCell:
-    def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, learning_rate):
+    def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, learning_rate, optimize):
         self.eos_vector = eos_vector
         self.vocab_size = vocab_size
         self.h_size = h_size
         self.similarity_layer_size = similarity_layer_size
         self.optimizer = tf.train.AdamOptimizer(learning_rate)
+        self.optimize = optimize
 
     def run(self, input, question, supporting_hot):
         # Running
@@ -20,8 +21,13 @@ class DMNCell:
         # Minimizing loss
         supporting = tf.one_hot(supporting_hot, self.seq_length)
         loss = tf.losses.softmax_cross_entropy(supporting, gates)
-        minimize = self.optimizer.minimize(loss)
-        with tf.control_dependencies([minimize]):
+        def minimize_fn():
+            minimize = self.minimize_op(loss)
+            with tf.control_dependencies([minimize]):
+                return tf.identity(loss)
+        maybe_minimize_op = tf.cond(self.optimize, minimize_fn, lambda: tf.identity(loss))
+
+        with tf.control_dependencies([maybe_minimize_op]):
             loss = tf.identity(loss)
 
         # Accuracy
@@ -55,6 +61,7 @@ class DMNCell:
         return eos_input_states, question_state
 
     def memory_call(self, input_states, question_state):
+        # with ts(question_state):
         question_tiled = tf.tile(question_state, [self.seq_length, 1])
         question_stacked = tf.reshape(question_tiled, (self.batch_size, self.seq_length, self.h_size))
         input = tf.concat((input_states, question_stacked), axis=2)
@@ -64,6 +71,9 @@ class DMNCell:
         gates = tf.transpose(out, [0, 2, 1])
 
         return gates
+
+    def minimize_op(self, loss):
+        return self.optimizer.minimize(loss)
 
 #64x10x512
 #64x512

@@ -80,3 +80,5 @@ lesson: everything could be wrong. assume there is a bug somewhere, because it's
 how to search in console tf.TAB
 
 how to mkae tf calculate accuracy
+
+We reached an accuracy of .96875 on the hundred cases
