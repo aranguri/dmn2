@@ -64,8 +64,8 @@ class DMNCell:
         q = tf.expand_dims(q, 1)
 
         qs = tf.tile(q, [1, self.seq_length, 1])
-        [c, qs, tf.abs(c - q)]
-        input = tf.concat((input_states, question_stacked), axis=2)
+        # [c, qs, tf.abs(c - q)]
+        input = tf.concat((c, q), axis=2)
         h1 = tf.layers.dense(input, self.similarity_layer_size, activation=tf.nn.tanh)
         # h2 = tf.layers.dense(h1, self.similarity_layer_size, activation=tf.nn.tanh)
         out = tf.layers.dense(h1, 1)
