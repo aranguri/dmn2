@@ -17,7 +17,6 @@ babi_task = BabiTask(batch_size_train)
 input_length, question_length, vocab_size = babi_task.get_lengths()
 
 train = tf.placeholder(tf.bool, shape=())
-batch_size = tf.cond(train, lambda: batch_size_train, lambda: batch_size_dev)
 input_ids = tf.placeholder(tf.int32, shape=(None, input_length))
 question_ids = tf.placeholder(tf.int32, shape=(None, question_length))
 supporting = tf.placeholder(tf.int32, shape=(None, None))
