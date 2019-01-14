@@ -87,11 +87,11 @@ def get_data():
     # Default QA1 with 1000 samples
     # challenge = 'tasks_1-20_v1-2/en/qa1_single-supporting-fact_{}.txt'
     # QA1 with 10,000 samples
-    challenge = 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt'
+    # challenge = 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt'
     # QA2 with 1000 samples
     # challenge = 'tasks_1-20_v1-2/en/qa2_two-supporting-facts_{}.txt'
     # QA2 with 10,000 samples
-    # challenge = 'tasks_1-20_v1-2/en-10k/qa2_two-supporting-facts_{}.txt'
+    challenge = 'tasks_1-20_v1-2/en-10k/qa2_two-supporting-facts_{}.txt'
 
     with tarfile.open(path) as tar:
         train = get_stories(tar.extractfile(challenge.format('train')))
@@ -118,6 +118,6 @@ def get_data():
     x, xq, y, sup = vectorize_stories(train, word_idx, story_maxlen, query_maxlen)
     tx, txq, ty, tsup = vectorize_stories(test, word_idx, story_maxlen, query_maxlen)
 
-    np.savez('babi/generated_data_one_fact_sup_10k', x, xq, y, sup, tx, txq, ty, tsup, vocab_size, word_idx['.'])
+    np.savez('babi/generated_data_two_fact_sup_10k', x, xq, y, sup, tx, txq, ty, tsup, vocab_size, word_idx['.'])
 
 get_data()

@@ -14,7 +14,7 @@ output_hidden_size = 512
 debug_steps = 10
 alpha, beta = 0, 1
 steps_to_change_alpha = 500
-num_passes = 1
+num_passes = 2
 
 babi_task = BabiTask(batch_size, '10k')
 input_length, question_length, vocab_size = babi_task.get_lengths()
