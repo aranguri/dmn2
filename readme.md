@@ -82,3 +82,12 @@ how to search in console tf.TAB
 how to mkae tf calculate accuracy
 
 We reached an accuracy of .96875 on the hundred cases
+
+next step: given that we have the memories, we want to decide what word to say
+
+Around 400 steps with batch size = 64, we reach 1.0 in training and 1.0 in dev
+
+
+Next step: check loss and accuracy of ouptut in train and dev.
+
+note: we check gates_acc on train and dev. it would be better to just try on dev. it's not super elegant that it changes 0 1 0 1. we could let alpha be 1 after n steps

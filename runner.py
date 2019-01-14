@@ -10,13 +10,17 @@ batch_size = 64
 embeddings_size = 256
 h_size = 512
 similarity_layer_size = 512
-debug_steps = 5
+output_hidden_size = 512
+debug_steps = 10
+alpha, beta = 0, 1
+gates_acc_threshold = .97
 
 babi_task = BabiTask(batch_size)
 input_length, question_length, vocab_size = babi_task.get_lengths()
 
 input_ids = tf.placeholder(tf.int32, shape=(None, input_length))
 question_ids = tf.placeholder(tf.int32, shape=(None, question_length))
+answer = tf.placeholder(tf.int32, shape=(None, vocab_size))
 supporting = tf.placeholder(tf.int32, shape=(None, None))
 
 embeddings = tf.get_variable('embeddings', shape=(vocab_size, embeddings_size))
@@ -24,27 +28,36 @@ input = tf.nn.embedding_lookup(embeddings, input_ids)
 question = tf.nn.embedding_lookup(embeddings, question_ids)
 eos_vector = tf.nn.embedding_lookup(embeddings, babi_task.eos_vector)
 
-dmn_cell = DMNCell(eos_vector, vocab_size, h_size, similarity_layer_size, learning_rate)
-loss, accuracy, gates = dmn_cell.run(input, question, supporting)
+dmn_cell = DMNCell(eos_vector, vocab_size, h_size, similarity_layer_size,
+                   output_hidden_size, learning_rate, alpha, beta,
+                   gates_acc_threshold)
+loss, data = dmn_cell.run(input, question, answer, supporting)
 minimize = dmn_cell.minimize_op(loss)
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    tr_loss, tr_gates, dev_loss, dev_gates = {}, {}, {}, {}
+    tr_loss, tr_gates_loss, tr_gates_acc = {}, {}, {}
+    tr_output_loss, tr_output_acc = {}, {}
+    dev_loss, dev_gates_loss, dev_gates_acc = {}, {}, {}
+    dev_output_loss, dev_output_acc = {}, {}
 
     for j in itertools.count():
         input_, question_, answer_, sup_ = babi_task.next_batch()
-        feed_dict = {input_ids: input_, question_ids: question_, supporting: sup_}
-        tr_loss[j], tr_gates[j], gates_, _ = sess.run([loss, accuracy, gates, minimize], feed_dict)
+        feed_dict = {input_ids: input_, question_ids: question_, answer: answer_, supporting: sup_}
+        tr_loss[j], data_, _ = sess.run([loss, data, minimize], feed_dict)
+        tr_output_loss[j], tr_gates_loss[j], tr_output_acc[j], tr_gates_acc[j] = data_
 
         if j % debug_steps == 0:
             input_, question_, answer_, sup_ = babi_task.dev_data()
-            feed_dict = {input_ids: input_, question_ids: question_, supporting: sup_}
-            dev_loss[j/debug_steps], dev_gates[j/debug_steps], gates_ = sess.run([loss, accuracy, gates], feed_dict)
+            feed_dict = {input_ids: input_, question_ids: question_, answer: answer_, supporting: sup_}
+            dev_loss[j/debug_steps], data_ = sess.run([loss, data], feed_dict)
+            dev_output_loss[j], dev_gates_loss[j], dev_output_acc[j], dev_gates_acc[j] = data_
 
-            tr_loss_, tr_gates_ = list(tr_loss.values()), list(tr_gates.values())
-            dev_loss_, dev_gates_ = list(dev_loss.values()), list(dev_gates.values())
-            print(f'{j}) TRAIN: Loss: {np.mean(tr_loss_[-10:])}. Gates: {np.mean(tr_gates_[-10:])}')
-            print(f'{j}) DEV  : Loss: {np.mean(dev_loss_[-10:])}. Gates: {np.mean(dev_gates_[-10:])}')
+            tol, toa = list(tr_output_loss.values()), list(tr_output_acc.values())
+            tgl, tga = list(tr_gates_loss.values()), list(tr_gates_acc.values())
+            dol, doa = list(dev_output_loss.values()), list(dev_output_acc.values())
+            dgl, dga = list(dev_gates_loss.values()), list(dev_gates_acc.values())
+            print(f'{j}) TRAIN: Output: Loss: {np.mean(tol[-10:])}. Acc: {np.mean(toa[-10:])}. Gates: Loss: {np.mean(tgl[-10:])}. Acc: {np.mean(tga[-10:])}')
+            print(f'{j}) DEV  : Gates : Loss: {np.mean(dol[-10:])}. Acc: {np.mean(doa[-10:])}. Gates: Loss: {np.mean(dgl[-10:])}. Acc: {np.mean(dga[-10:])} \n')
             # smooth_plot(gates_acc)
             # smooth_plot(tr_loss)

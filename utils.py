@@ -23,6 +23,9 @@ def tps(ts, summarize=10000):
 def ts(t, summarize=10000):
     return tf.control_dependencies([tf.Print([0], [tf.shape(t)], summarize=summarize)])
 
+def tss(t1, t2, summarize=10000):
+    return tf.control_dependencies([tf.Print([0], [tf.shape(t1), tf.shape(t2)], summarize=summarize)])
+
 def mm(t):
     return tf.matmul(t, t)
 

@@ -20,7 +20,7 @@ def parse_stories(lines, only_sup=False):
     '''
     data = []
     story = []
-    for line in lines:#[:10]:
+    for line in lines[:30]:
         line = line.decode('utf-8').strip()
         nid, line = line.split(' ', 1)
         nid = int(nid)
