@@ -91,3 +91,9 @@ Around 400 steps with batch size = 64, we reach 1.0 in training and 1.0 in dev
 Next step: check loss and accuracy of ouptut in train and dev.
 
 note: we check gates_acc on train and dev. it would be better to just try on dev. it's not super elegant that it changes 0 1 0 1. we could let alpha be 1 after n steps
+
+source activate py36-aranguri-2; cd dmn4; git reset --hard; git pull; python runner.py
+git add .; git commit -m "to cluster"; git push
+
+#10k
+1 sup fact: 1 dev 1 train in 1000 steps

@@ -124,7 +124,7 @@ class DMNCell:
     def get_output(self, question_state, memory):
         input = tf.concat((question_state, memory), axis=1)
         hidden = tf.layers.dense(input, self.output_hidden_size, activation=tf.nn.relu)
-        output = tf.layers.dense(hidden, self.vocab_size)
+        output = tf.layers.dense(hidden, self.vocab_size, activation=tf.nn.softmax)# we could use a softargmax here
         return output
 
     def get_loss(self, output, gates, answer, supporting):

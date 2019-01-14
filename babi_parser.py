@@ -91,33 +91,46 @@ def get_data():
     # QA2 with 1000 samples
     # challenge = 'tasks_1-20_v1-2/en/qa2_two-supporting-facts_{}.txt'
     # QA2 with 10,000 samples
-    challenge = 'tasks_1-20_v1-2/en-10k/qa2_two-supporting-facts_{}.txt'
+    # challenge = 'tasks_1-20_v1-2/en-10k/qa2_two-supporting-facts_{}.txt'
+    datasets = []
+    tar = tarfile.open(path)
+    for name in tar.getnames():
+        if 'tasks_1-20_v1-2/en-10k' in name and 'tasks_1-20_v1-2/en-10k' != name:
+            datasets.append(name)
 
-    with tarfile.open(path) as tar:
-        train = get_stories(tar.extractfile(challenge.format('train')))
-        test = get_stories(tar.extractfile(challenge.format('test')))
+    datasets = sorted(datasets)
+    print(datasets)
 
-    '''
-    train_file = open('babi/gen/gen_test_3.txt')#.read()
-    train = get_stories(train_file)
-    test_file = open('babi/gen/gen_test_3.txt')#.read()
-    test = get_stories(train_file)
-    '''
+    for i in range(len(datasets) // 2):
+        test = datasets[2 * i]
+        train = datasets[2 * i + 1]
+        name = train[23:-10]
 
-    vocab = set()
-    for story, q, answer, _ in train + test:
-        vocab |= set(story + q + [answer])
-    vocab = sorted(vocab)
+        with tarfile.open(path) as tar:
+            train = get_stories(tar.extractfile(train))
+            test = get_stories(tar.extractfile(test))
 
-    # Reserve 0 for masking via pad_sequences
-    vocab_size = len(vocab) + 1
-    word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
-    story_maxlen = max(map(len, (x for x, _, _, _ in train + test)))
-    query_maxlen = max(map(len, (x for _, x, _, _ in train + test)))
+        '''
+        train_file = open('babi/gen/gen_test_3.txt')#.read()
+        train = get_stories(train_file)
+        test_file = open('babi/gen/gen_test_3.txt')#.read()
+        test = get_stories(train_file)
+        '''
 
-    x, xq, y, sup = vectorize_stories(train, word_idx, story_maxlen, query_maxlen)
-    tx, txq, ty, tsup = vectorize_stories(test, word_idx, story_maxlen, query_maxlen)
+        vocab = set()
+        for story, q, answer, _ in train + test:
+            vocab |= set(story + q + [answer])
+        vocab = sorted(vocab)
 
-    np.savez('babi/generated_data_two_fact_sup_10k', x, xq, y, sup, tx, txq, ty, tsup, vocab_size, word_idx['.'])
+        # Reserve 0 for masking via pad_sequences
+        vocab_size = len(vocab) + 1
+        word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
+        story_maxlen = max(map(len, (x for x, _, _, _ in train + test)))
+        query_maxlen = max(map(len, (x for _, x, _, _ in train + test)))
+
+        x, xq, y, sup = vectorize_stories(train, word_idx, story_maxlen, query_maxlen)
+        tx, txq, ty, tsup = vectorize_stories(test, word_idx, story_maxlen, query_maxlen)
+
+        np.savez(f'babi/{name}', x, xq, y, sup, tx, txq, ty, tsup, vocab_size, word_idx['.'])
 
 get_data()
