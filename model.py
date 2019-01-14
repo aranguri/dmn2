@@ -35,8 +35,6 @@ class DMNCell:
 
         self.alpha = tf.cond(step > self.steps_to_change_alpha, lambda: 1., lambda: 0.)
         loss, output_loss, gates_loss = self.get_loss(output_hot, gates_hot, answer_hot, supporting_hot)
-        with tp(self.alpha):
-            loss = tf.identity(loss)
 
         return loss, (output_loss, gates_loss, output_acc, gates_acc)
 
@@ -86,6 +84,9 @@ class DMNCell:
         return gates
 
     def get_episode(self, input_states, gates):
+        gates = tf.nn.softmax(tf.reshape(gates, (self.batch_size, self.seq_length)))
+        episode = tf.einsum('ij,ijk->ik', gates, input_states)
+        '''
         episode_gru = GRU(self.h_size)
         episode_cond = lambda state, i: tf.less(i, self.seq_length)
 
@@ -95,8 +96,10 @@ class DMNCell:
             return next_state, (i + 1)
 
         initial_state = episode_gru.zero_state(self.batch_size, dtype=tf.float32)
-        i = tf.constant(0)
+        with tss(input_states, gates):
+            i = tf.constant(0)
         episode, _ = tf.while_loop(episode_cond, episode_loop, [initial_state, i])
+        '''
         return episode
 
     def get_memory(self, memory_state, episode):
