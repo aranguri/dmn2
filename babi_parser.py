@@ -20,8 +20,8 @@ def parse_stories(lines, only_sup=False):
     '''
     data = []
     story = []
-    for line in lines[:30]:
-        line = line.decode('utf-8').strip()
+    for line in lines:
+        line = line.decode('utf-8').strip()#line.strip()
         nid, line = line.split(' ', 1)
         nid = int(nid)
         if nid == 1:
@@ -92,9 +92,17 @@ def get_data():
     # challenge = 'tasks_1-20_v1-2/en/qa2_two-supporting-facts_{}.txt'
     # QA2 with 10,000 samples
     # challenge = 'tasks_1-20_v1-2/en-10k/qa2_two-supporting-facts_{}.txt'
+
     with tarfile.open(path) as tar:
         train = get_stories(tar.extractfile(challenge.format('train')))
         test = get_stories(tar.extractfile(challenge.format('test')))
+
+    '''
+    train_file = open('babi/gen/gen_test_3.txt')#.read()
+    train = get_stories(train_file)
+    test_file = open('babi/gen/gen_test_3.txt')#.read()
+    test = get_stories(train_file)
+    '''
 
     vocab = set()
     for story, q, answer, _ in train + test:

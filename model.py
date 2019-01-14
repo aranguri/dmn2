@@ -4,7 +4,9 @@ from tensorflow.contrib.cudnn_rnn import CudnnCompatibleGRUCell as GRU #GPU vers
 # from tensorflow.contrib.rnn import GRUCell as GRU #CPU version
 
 class DMNCell:
-    def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, output_hidden_size, learning_rate, alpha, beta, steps_to_change_alpha):
+    def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size,
+                 output_hidden_size, learning_rate, alpha, beta,
+                 steps_to_change_alpha, num_passes):
         self.eos_vector = eos_vector
         self.vocab_size = vocab_size
         self.h_size = h_size
@@ -14,16 +16,29 @@ class DMNCell:
         self.alpha = alpha
         self.beta = beta
         self.steps_to_change_alpha = steps_to_change_alpha
+        self.num_passes = num_passes
         self.i = tf.constant(0)
 
     def run(self, input, question, answer_hot, supporting, step):
         # Running
         self.batch_size = tf.shape(input)[0]
         input_states, question_state = self.first_call(input, question)
-        gates_hot = self.get_gates(input_states, question_state, question_state)
-        episode = self.get_episode(input_states, gates_hot)
-        memory = self.get_memory(question_state, episode)
-        output_hot = self.get_output(question_state, memory)
+
+        task_cond = lambda m, g, i: tf.less(i, self.num_passes)
+
+        def task_loop(memory, gates, i):
+            gates_hot = self.get_gates(input_states, question_state, memory)
+            episode = self.get_episode(input_states, gates_hot)
+            memory = self.get_memory(memory, episode)
+            gates = tf.concat((gates, gates_hot), axis=1)
+            return memory, gates, (i + 1)
+
+        gates = tf.fill((self.batch_size, 0, self.seq_length), 0.0)
+        i = tf.constant(0.0)
+        shapes = [question_state.get_shape(), tf.TensorShape((None, None, None)), i.get_shape()]
+        last_memory, gates_hot, _ = tf.while_loop(task_cond, task_loop, [question_state, gates, i], shapes)
+
+        output_hot = self.get_output(question_state, last_memory)
 
         # Loss and accuracy
         supporting_hot = tf.one_hot(supporting, self.seq_length)
@@ -36,7 +51,7 @@ class DMNCell:
         self.alpha = tf.cond(step > self.steps_to_change_alpha, lambda: 1., lambda: 0.)
         loss, output_loss, gates_loss = self.get_loss(output_hot, gates_hot, answer_hot, supporting_hot)
 
-        return loss, (output_loss, gates_loss, output_acc, gates_acc)
+        return loss, (output_loss, gates_loss, output_acc, gates_acc), (output, gates)
 
     def first_call(self, input, question):
         input_gru = GRU(self.h_size)
@@ -96,8 +111,7 @@ class DMNCell:
             return next_state, (i + 1)
 
         initial_state = episode_gru.zero_state(self.batch_size, dtype=tf.float32)
-        with tss(input_states, gates):
-            i = tf.constant(0)
+        i = tf.constant(0)
         episode, _ = tf.while_loop(episode_cond, episode_loop, [initial_state, i])
         '''
         return episode
@@ -120,6 +134,4 @@ class DMNCell:
         return loss, output_loss, gates_loss
 
     def minimize_op(self, loss):
-        with tp(tf.constant(0)):
-            loss = tf.identity(loss)
         return self.optimizer.minimize(loss)

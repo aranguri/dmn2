@@ -75,12 +75,12 @@ class BabiGen:
         return self.data
 
 class BabiTask:
-    def __init__(self, batch_size):
+    def __init__(self, batch_size, file_name):
         self.epoch = 0
         self.i = -1 # Batch index
         self.batch_size = batch_size
 
-        file_name = f'babi/generated_data_one_fact_sup_10k.npz'
+        file_name = f'babi/generated_data_one_fact_sup_{file_name}.npz'
         file = np.load(file_name)
 
         self.x, self.xq, self.y, self.sup = file['arr_0'], file['arr_1'], file['arr_2'], file['arr_3']
