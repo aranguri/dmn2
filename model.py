@@ -4,7 +4,7 @@ from tensorflow.contrib.cudnn_rnn import CudnnCompatibleGRUCell as GRU #GPU vers
 # from tensorflow.contrib.rnn import GRUCell as GRU #CPU version
 
 class DMNCell:
-    def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, output_hidden_size, learning_rate, alpha, beta, gates_acc_threshold):
+    def __init__(self, eos_vector, vocab_size, h_size, similarity_layer_size, output_hidden_size, learning_rate, alpha, beta, steps_to_change_alpha):
         self.eos_vector = eos_vector
         self.vocab_size = vocab_size
         self.h_size = h_size
@@ -13,9 +13,10 @@ class DMNCell:
         self.optimizer = tf.train.AdamOptimizer(learning_rate)
         self.alpha = alpha
         self.beta = beta
-        self.gates_acc_threshold = gates_acc_threshold
+        self.steps_to_change_alpha = steps_to_change_alpha
+        self.i = tf.constant(0)
 
-    def run(self, input, question, answer_hot, supporting):
+    def run(self, input, question, answer_hot, supporting, step):
         # Running
         self.batch_size = tf.shape(input)[0]
         input_states, question_state = self.first_call(input, question)
@@ -32,8 +33,10 @@ class DMNCell:
         output_acc = tf.reduce_mean(tf.to_float(tf.equal(output, answer)))
         gates_acc = tf.reduce_mean(tf.to_float(tf.equal(gates, supporting)))
 
-        self.alpha = tf.cond(gates_acc > self.gates_acc_threshold, lambda: 1., lambda: 0.)
+        self.alpha = tf.cond(step > self.steps_to_change_alpha, lambda: 1., lambda: 0.)
         loss, output_loss, gates_loss = self.get_loss(output_hot, gates_hot, answer_hot, supporting_hot)
+        with tp(self.alpha):
+            loss = tf.identity(loss)
 
         return loss, (output_loss, gates_loss, output_acc, gates_acc)
 

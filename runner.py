@@ -13,7 +13,7 @@ similarity_layer_size = 512
 output_hidden_size = 512
 debug_steps = 10
 alpha, beta = 0, 1
-gates_acc_threshold = .97
+steps_to_change_alpha = 500
 
 babi_task = BabiTask(batch_size)
 input_length, question_length, vocab_size = babi_task.get_lengths()
@@ -22,6 +22,7 @@ input_ids = tf.placeholder(tf.int32, shape=(None, input_length))
 question_ids = tf.placeholder(tf.int32, shape=(None, question_length))
 answer = tf.placeholder(tf.int32, shape=(None, vocab_size))
 supporting = tf.placeholder(tf.int32, shape=(None, None))
+step = tf.placeholder(tf.int32, shape=())
 
 embeddings = tf.get_variable('embeddings', shape=(vocab_size, embeddings_size))
 input = tf.nn.embedding_lookup(embeddings, input_ids)
@@ -30,8 +31,8 @@ eos_vector = tf.nn.embedding_lookup(embeddings, babi_task.eos_vector)
 
 dmn_cell = DMNCell(eos_vector, vocab_size, h_size, similarity_layer_size,
                    output_hidden_size, learning_rate, alpha, beta,
-                   gates_acc_threshold)
-loss, data = dmn_cell.run(input, question, answer, supporting)
+                   steps_to_change_alpha)
+loss, data = dmn_cell.run(input, question, answer, supporting, step)
 minimize = dmn_cell.minimize_op(loss)
 
 with tf.Session() as sess:
@@ -43,13 +44,13 @@ with tf.Session() as sess:
 
     for j in itertools.count():
         input_, question_, answer_, sup_ = babi_task.next_batch()
-        feed_dict = {input_ids: input_, question_ids: question_, answer: answer_, supporting: sup_}
+        feed_dict = {input_ids: input_, question_ids: question_, answer: answer_, supporting: sup_, step: j}
         tr_loss[j], data_, _ = sess.run([loss, data, minimize], feed_dict)
         tr_output_loss[j], tr_gates_loss[j], tr_output_acc[j], tr_gates_acc[j] = data_
 
         if j % debug_steps == 0:
             input_, question_, answer_, sup_ = babi_task.dev_data()
-            feed_dict = {input_ids: input_, question_ids: question_, answer: answer_, supporting: sup_}
+            feed_dict = {input_ids: input_, question_ids: question_, answer: answer_, supporting: sup_, step: j}
             dev_loss[j/debug_steps], data_ = sess.run([loss, data], feed_dict)
             dev_output_loss[j], dev_gates_loss[j], dev_output_acc[j], dev_gates_acc[j] = data_
 
