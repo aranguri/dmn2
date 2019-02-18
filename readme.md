@@ -1,3 +1,6 @@
+# What is this?
+This is an implementation of a Dynamic Memory Network (https://arxiv.org/abs/1506.07285)
+
 # Tasks
 Next steps
 * train for a long time
