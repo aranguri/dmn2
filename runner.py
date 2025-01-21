@@ -64,13 +64,12 @@ with tf.Session() as sess:
             # smooth_plot(gates_acc)
             # smooth_plot(tr_loss)
 
-        ''' add custom dev_datas
+        ''' Uncomment to compute test performance
         if j % 100 == 0:
             for i in range(1, 4):
                 test_task = BabiTask(i, f'test_{i}')
                 input_, question_, answer_, sup_ = test_task.dev_data()
                 input_length, question_length, vocab_size = test_task.get_lengths()
-                ps(input_)
                 feed_dict = {input_ids: input_, question_ids: question_, answer: answer_, supporting: sup_, step: j}
                 results_, (output_, gates_) = sess.run([results, data], feed_dict)
                 print(f'{i}) output: {output_}. gates: {gates_}', *results_)
