@@ -25,7 +25,7 @@ class BabiGen:
             sentences = task.split('\n')
             sentences = np.array([np.array(s.split(' ')) for s in sentences])
 
-            # Prevent reading last line, because atom added one new line.
+            # Prevent reading last line.
             for s in sentences[:-1]:
                 if s[0] == '1':
                     input = []
@@ -35,12 +35,12 @@ class BabiGen:
                 if any(np.core.defchararray.find(s, '\t') != -1):
                     s = np.concatenate((s[:-1], s[-1].split('\t')))
                     s = [self.embed(w) for w in s]
-                    # TODo: modify to support multiple label indices
+                    # TODO: modify to support multiple label indices
                     question, answer, label = s[0:-2], s[-2], s[-1]
                     input_flatten = np.array(input).reshape(-1, self.embeddings_size)
                     self.data.append((input_flatten, question, answer, label))
                 else:
-                    # TODo: modify to store sentence number
+                    # TODO: modify to store sentence number
                     s = [self.embed(w) for w in s[1:]]
                     input.append(s)
 
@@ -51,7 +51,6 @@ class BabiGen:
         data = data.reshape(num_batches, self.batch_size, -1)
         data = np.swapaxes(data, 1, 2)
 
-        # Sorry world for the fors.
         for i in range(len(data)):
             max_length = max([data[i, 0, j].shape[0] for j in range(len(data[i, 0]))])
             for j in range(len(data[i, 0])):
@@ -60,8 +59,7 @@ class BabiGen:
                     ps(np.pad(d, ((0, max_length - d.shape[0]), (0, 0)), 'constant'))
                     data[i, 0, j] = np.pad(d, ((0, max_length - d.shape[0]), (0, 0)), 'constant')
         return data
-        self.num_batches = num_batches
-
+    
     def store_data(self):
         file_name = f'babi/parsed/{self.task_num}_{self.batch_size}'
         np.savez(file_name, self.data, self.embed('.'))
