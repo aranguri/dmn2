@@ -62,10 +62,10 @@ class DMNCell:
         max_length = tf.reduce_sum(tf.to_float(mask), axis=1)
         self.seq_length = tf.to_int32(tf.reduce_max(max_length))
 
-        # This operation doesn't seem to be GPU-friendly
+        # TODO: Improve this for better GPU performance
         def get_eos_states(i):
             # rolled_mask = tf.roll(mask[i], -1, 0)
-            # We shift the mask one to the left to avoid selecting the state where we input the dot
+            # We shift the mask one to the left to avoid selecting the state where we input the period
             eos_states = tf.boolean_mask(input_states[i], mask[i])
             padding = [[0, self.seq_length - tf.shape(eos_states)[0],], [0, 0,]]
             return tf.pad(eos_states, padding, 'constant')
@@ -101,19 +101,6 @@ class DMNCell:
     def get_episode(self, input_states, gates):
         gates = tf.nn.softmax(tf.reshape(gates, (self.batch_size, self.seq_length)))
         episode = tf.einsum('ij,ijk->ik', gates, input_states)
-        '''
-        episode_gru = GRU(self.h_size)
-        episode_cond = lambda state, i: tf.less(i, self.seq_length)
-
-        def episode_loop(state, i):
-            next_state = episode_gru(input_states[:, i], state)[0]
-            next_state = gates[:, :, i] * next_state + (1 - gates[:, :, i]) * state
-            return next_state, (i + 1)
-
-        initial_state = episode_gru.zero_state(self.batch_size, dtype=tf.float32)
-        i = tf.constant(0)
-        episode, _ = tf.while_loop(episode_cond, episode_loop, [initial_state, i])
-        '''
         return episode
 
     def get_memory(self, memory_state, episode):
