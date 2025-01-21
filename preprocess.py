@@ -56,7 +56,6 @@ class BabiGen:
             for j in range(len(data[i, 0])):
                 d = data[i, 0, j]
                 if max_length != d.shape[0]:
-                    ps(np.pad(d, ((0, max_length - d.shape[0]), (0, 0)), 'constant'))
                     data[i, 0, j] = np.pad(d, ((0, max_length - d.shape[0]), (0, 0)), 'constant')
         return data
     
